@@ -63,28 +63,32 @@ def mean_optwindow(iz):
     doptij = dopt.sel(so_bin=S,thetao_bin=T)
 
     # -- Mean volume for all points where d<=dopt
-    V_smooth_dopt = V.where(d.T<=doptij.data).mean(dim=('so_bin','thetao_bin'))
-    V_smooth_halfdopt = V.where(d.T<=doptij.data/2).mean(dim=('so_bin','thetao_bin'))
+#    V_smooth_dopt = V.where(d.T<=doptij.data).mean(dim=('so_bin','thetao_bin'))
+#    V_smooth_halfdopt = V.where(d.T<=doptij.data/2).mean(dim=('so_bin','thetao_bin'))
+    V_smooth = V.where(d.T<=doptij.data/4).mean(dim=('so_bin','thetao_bin'))
     
-    return V_smooth_dopt, V_smooth_halfdopt
+    return V_smooth #V_smooth_dopt, V_smooth_halfdopt
 
 
 print(nso*nthetao, ' steps')
 t0=time.time()
 with multiprocessing.Pool(4) as p:
-    V_smooth_dopt, V_smooth_halfdopt = zip(*p.map(mean_optwindow,np.arange(nso*nthetao)))
-#     V_smooth = p.map(mean_optwindow,np.arange(nso*nthetao))
+#    V_smooth_dopt, V_smooth_halfdopt = zip(*p.map(mean_optwindow,np.arange(nso*nthetao)))
+     V_smooth = p.map(mean_optwindow,np.arange(nso*nthetao))
 print(time.time() - t0, "seconds wall time")
 
 # -- Turn to DataArray
-Vxr1 = xr.DataArray(np.array(V_smooth_dopt).T,dims=V.stack(z=('so_bin','thetao_bin')).dims,coords=V.stack(z=('so_bin','thetao_bin')).coords,name='Vsmooth_dopt')
-Vxr1 = Vxr1.unstack()
+#Vxr1 = xr.DataArray(np.array(V_smooth_dopt).T,dims=V.stack(z=('so_bin','thetao_bin')).dims,coords=V.stack(z=('so_bin','thetao_bin')).coords,name='Vsmooth_dopt')
+#Vxr1 = Vxr1.unstack()
 
-Vxr2 = xr.DataArray(np.array(V_smooth_halfdopt).T,dims=V.stack(z=('so_bin','thetao_bin')).dims,coords=V.stack(z=('so_bin','thetao_bin')).coords,name='Vsmooth_halfdopt')
-Vxr2 = Vxr2.unstack()
+#Vxr2 = xr.DataArray(np.array(V_smooth_halfdopt).T,dims=V.stack(z=('so_bin','thetao_bin')).dims,coords=V.stack(z=('so_bin','thetao_bin')).coords,name='Vsmooth_halfdopt')
+#Vxr2 = Vxr2.unstack()
 
-Vxr = Vxr1.to_dataset(name=Vxr1.name)
-Vxr[Vxr2.name] = Vxr2
+#Vxr = Vxr1.to_dataset(name=Vxr1.name)
+#Vxr[Vxr2.name] = Vxr2
+
+Vxr = xr.DataArray(np.array(V_smooth).T,dims=V.stack(z=('so_bin','thetao_bin')).dims,coords=V.stack(z=('so_bin','thetao_bin')).coords,name='Vsmooth_dopt_div_4')
+Vxr = Vxr.unstack()
 
 # -- Write to out file
-Vxr.to_netcdf('/data/ysilvy/bin_TS/volumeTS_smoothdopt_'+region+'_'+str(deltaS)+'_'+str(deltaT)+'_IPSL-CM5A-LR_historical-rcp85_r2i1p1_1850-2100.nc')
+Vxr.to_netcdf('/data/ysilvy/bin_TS/volumeTS_smoothdopt4_'+region+'_'+str(deltaS)+'_'+str(deltaT)+'_IPSL-CM5A-LR_historical-rcp85_r2i1p1_1850-2100.nc')
