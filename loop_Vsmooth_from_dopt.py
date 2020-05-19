@@ -35,60 +35,53 @@ alpha = gsw.density.alpha(S2d,T2d,P2d)
 beta = gsw.density.beta(S2d,T2d,P2d)
 
 def mean_optwindow(iz):
+    
     # -- Retrieve S and T values from iz index
     S = np.array(V.stack(z=('so_bin','thetao_bin')).isel(z=iz).z.data.max())[0]
     T = np.array(V.stack(z=('so_bin','thetao_bin')).isel(z=iz).z.data.max())[1]
-    
-    if iz==0:
-        print(S,T)
-        
+
     # -- Volume at grid point 
-    Vij = V.sel(so_bin=S,thetao_bin=T)
-    
-#     if Vij.data.all() == 0:
-#         V_smooth = xr.zeros_like(Vij)
-    
-#     else:
-        
+    Vij = V.sel(so_bin=S,thetao_bin=T,method='nearest')
+
     # -- Indices of (T,S) grid point
     iS = np.argwhere(V.so_bin.data==Vij.so_bin.data)[0][0]
     iT = np.argwhere(V.thetao_bin.data==Vij.thetao_bin.data)[0][0]
-    
+
     # -- Define distance in T-S space
     adT = 0.5*(alpha + alpha[iT,iS])*abs(T2d-T2d[iT,iS])
     bdS = 0.5*(beta + beta[iT,iS])*abs(S2d-S2d[iT,iS])
     d = np.sqrt(bdS**2 + adT**2) #(T,S)
-    
+
     # -- dopt at grid point
-    doptij = dopt.sel(so_bin=S,thetao_bin=T)
+    doptij = dopt.sel(so_bin=Vij.so_bin.data,thetao_bin=Vij.thetao_bin.data)
 
     # -- Mean volume for all points where d<=dopt
-#    V_smooth_dopt = V.where(d.T<=doptij.data).mean(dim=('so_bin','thetao_bin'))
-#    V_smooth_halfdopt = V.where(d.T<=doptij.data/2).mean(dim=('so_bin','thetao_bin'))
-    V_smooth = V.where(d.T<=doptij.data/4).mean(dim=('so_bin','thetao_bin'))
+#     V_smooth_dopt = V.where(d.T<=doptij.data).mean(dim=('so_bin','thetao_bin'))
+    V_smooth_halfdopt = V.where(d.T<=doptij.data/2).mean(dim=('so_bin','thetao_bin'))
+    V_smooth_fourthdopt = V.where(d.T<=doptij.data/4).mean(dim=('so_bin','thetao_bin'))
     
-    return V_smooth #V_smooth_dopt, V_smooth_halfdopt
+    return V_smooth_halfdopt, V_smooth_fourthdopt
 
 
 print(nso*nthetao, ' steps')
 t0=time.time()
-with multiprocessing.Pool(4) as p:
-#    V_smooth_dopt, V_smooth_halfdopt = zip(*p.map(mean_optwindow,np.arange(nso*nthetao)))
-     V_smooth = p.map(mean_optwindow,np.arange(nso*nthetao))
+with multiprocessing.Pool(1) as p:
+    V_smooth_halfdopt, V_smooth_fourthdopt = zip(*p.map(mean_optwindow,np.arange(nso*nthetao)))
+#      V_smooth = p.map(mean_optwindow,np.arange(nso*nthetao))
 print(time.time() - t0, "seconds wall time")
 
 # -- Turn to DataArray
-#Vxr1 = xr.DataArray(np.array(V_smooth_dopt).T,dims=V.stack(z=('so_bin','thetao_bin')).dims,coords=V.stack(z=('so_bin','thetao_bin')).coords,name='Vsmooth_dopt')
-#Vxr1 = Vxr1.unstack()
+Vxr1 = xr.DataArray(np.array(V_smooth_halfdopt).T,dims=V.stack(z=('so_bin','thetao_bin')).dims,coords=V.stack(z=('so_bin','thetao_bin')).coords,name='Vsmooth_halfdopt')
+Vxr1 = Vxr1.unstack()
 
-#Vxr2 = xr.DataArray(np.array(V_smooth_halfdopt).T,dims=V.stack(z=('so_bin','thetao_bin')).dims,coords=V.stack(z=('so_bin','thetao_bin')).coords,name='Vsmooth_halfdopt')
-#Vxr2 = Vxr2.unstack()
+Vxr2 = xr.DataArray(np.array(V_smooth_fourthdopt).T,dims=V.stack(z=('so_bin','thetao_bin')).dims,coords=V.stack(z=('so_bin','thetao_bin')).coords,name='Vsmooth_fourthdopt')
+Vxr2 = Vxr2.unstack()
 
-#Vxr = Vxr1.to_dataset(name=Vxr1.name)
-#Vxr[Vxr2.name] = Vxr2
+Vxr = Vxr1.to_dataset(name=Vxr1.name)
+Vxr[Vxr2.name] = Vxr2
 
-Vxr = xr.DataArray(np.array(V_smooth).T,dims=V.stack(z=('so_bin','thetao_bin')).dims,coords=V.stack(z=('so_bin','thetao_bin')).coords,name='Vsmooth_dopt_div_4')
-Vxr = Vxr.unstack()
+# Vxr = xr.DataArray(np.array(V_smooth).T,dims=V.stack(z=('so_bin','thetao_bin')).dims,coords=V.stack(z=('so_bin','thetao_bin')).coords,name='Vsmooth_dopt_div_4')
+# Vxr = Vxr.unstack()
 
 # -- Write to out file
-Vxr.to_netcdf('/data/ysilvy/bin_TS/volumeTS_smoothdopt4_'+region+'_'+str(deltaS)+'_'+str(deltaT)+'_IPSL-CM5A-LR_historical-rcp85_r2i1p1_1850-2100.nc')
+Vxr.to_netcdf('/data/ysilvy/bin_TS/volumeTS_smoothdopt_window_'+region+'_'+str(deltaS)+'_'+str(deltaT)+'_IPSL-CM5A-LR_historical-rcp85_r2i1p1_1850-2100.nc')
