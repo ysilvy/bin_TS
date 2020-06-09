@@ -2,6 +2,7 @@ import xarray as xr
 import numpy as np
 from eofs.xarray import Eof
 import matplotlib.pyplot as plt
+from decimal import Decimal
 
 def compute_eof(V):
     # -- Center
@@ -29,7 +30,7 @@ def proj_on_eof(V,solver):
     return pseudo_pcs
 
 def plot_eof_basin(iregion,solver,pseudo_pcs_1,pseudo_pcs_2,pseudo_pcs_3,pseudo_pcs_4,
-                  pseudo_pcs_piC1,pseudo_pcs_piC2,pseudo_pcs_piC3,pseudo_pcs_piC4,pseudo_pcs_CO2):
+                  pseudo_pcs_piC1,pseudo_pcs_piC2,pseudo_pcs_piC3,pseudo_pcs_piC4,pseudo_pcs_CO2,pseudo_pcs_EN4):
 
     pcs = solver.pcs()
     eofs = solver.eofs()
@@ -48,6 +49,7 @@ def plot_eof_basin(iregion,solver,pseudo_pcs_1,pseudo_pcs_2,pseudo_pcs_3,pseudo_
     time=np.arange(1850,2101)
     timepiC = np.arange(1850,2100)
     timeCO2 = np.arange(1850,1990)
+    timeEN4 = np.arange(1900,2018)
     
     fig,ax = plt.subplots(ncols=2,nrows=3,figsize=(14,15))
 
@@ -63,6 +65,7 @@ def plot_eof_basin(iregion,solver,pseudo_pcs_1,pseudo_pcs_2,pseudo_pcs_3,pseudo_
     ax[0,1].plot(time,pseudo_pcs_3[:,0],label='r3i1p1',zorder=7)
     ax[0,1].plot(time,pseudo_pcs_4[:,0],label='r4i1p1',zorder=6)
     ax[0,1].plot(timeCO2,pseudo_pcs_CO2[:,0],label='1pctCO2')
+    ax[0,1].plot(timeEN4,pseudo_pcs_EN4[:,0],label='EN4')
     ax[0,1].plot(timepiC,pseudo_pcs_piC1[:,0]-abs(baseline),color='grey',label='piControl - ensmean[1850-1900]',zorder=5)
     ax[0,1].plot(timepiC,pseudo_pcs_piC2[:,0]-abs(baseline),color='grey',zorder=4)
     ax[0,1].plot(timepiC,pseudo_pcs_piC3[:,0]-abs(baseline),color='grey',zorder=3)
@@ -82,6 +85,7 @@ def plot_eof_basin(iregion,solver,pseudo_pcs_1,pseudo_pcs_2,pseudo_pcs_3,pseudo_
     ax[1,1].plot(time,-pseudo_pcs_3[:,1],label='r3i1p1')
     ax[1,1].plot(time,-pseudo_pcs_4[:,1],label='r4i1p1')
     ax[1,1].plot(timeCO2,-pseudo_pcs_CO2[:,1],label='1pctCO2')
+    ax[1,1].plot(timeEN4,-pseudo_pcs_EN4[:,1],label='EN4')
     ax[1,1].plot(timepiC,-pseudo_pcs_piC1[:,1],color='grey',label='piControl')
     ax[1,1].plot(timepiC,-pseudo_pcs_piC2[:,1],color='grey')
     ax[1,1].plot(timepiC,-pseudo_pcs_piC3[:,1],color='grey')
@@ -100,6 +104,7 @@ def plot_eof_basin(iregion,solver,pseudo_pcs_1,pseudo_pcs_2,pseudo_pcs_3,pseudo_
     ax[2,1].plot(time,-pseudo_pcs_3[:,2],label='r3i1p1')
     ax[2,1].plot(time,-pseudo_pcs_4[:,2],label='r4i1p1')
     ax[2,1].plot(timeCO2,-pseudo_pcs_CO2[:,2],label='1pctCO2')
+    ax[2,1].plot(timeEN4,-pseudo_pcs_EN4[:,2],label='EN4')
     ax[2,1].plot(timepiC,-pseudo_pcs_piC1[:,2],color='grey',label='piControl')
     ax[2,1].plot(timepiC,-pseudo_pcs_piC2[:,2],color='grey')
     ax[2,1].plot(timepiC,-pseudo_pcs_piC3[:,2],color='grey')
